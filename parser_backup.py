@@ -72,6 +72,45 @@ class nxmlParser():
         self.sent_ref_points = []
         self.all_sent_original = []
     
+    def createLogFileDicts(self):
+        for key in self.dict_markers_ids:
+            if key not in self.log_file_caption:
+                self.log_file_caption[key] = []
+            
+            caption_type = self.dict_markers_ids[key][0]
+            caption_id = self.dict_markers_ids[key][-1]
+            num_caption_references = len(self.dict_markers_ids[key]) - 2
+            self.log_file_caption[key].append(caption_type)
+            self.log_file_caption[key].append(caption_id)
+            self.log_file_caption[key].append(num_caption_references)
+        
+        count = 0
+        for key in self.updated_rids_dict:
+            count += 1
+            if key not in self.log_file_references:
+                self.log_file_references[key] = []
+            
+            for id_key in self.dict_markers_ids:
+                if key in self.dict_markers_ids[id_key]:
+#                    ref_type = self.dict_markers_ids[id_key][0]
+                    ref_to_capt_id = self.dict_markers_ids[id_key][-1]
+                    
+#                    self.log_file_references[key].append(ref_type)
+                    self.log_file_references[key].append(ref_to_capt_id)
+            
+            self.log_file_references[key].append(count)
+            ref_text_span_start = self.updated_rids_dict[key][1][0]
+            # Try to print the error
+            try:
+                if int(ref_text_span_start) > 0:
+                    self.log_file_references[key].append(1)
+                else:
+                    self.log_file_references[key].append(-1)
+            except ValueError:
+                print(ref_text_span_start)
+                sys.exit()
+                
+    
     def addMarkersToXREF(self):
         count = 0
         for ref in soup.find_all('xref'):
