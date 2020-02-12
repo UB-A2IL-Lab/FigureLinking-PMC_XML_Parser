@@ -27,19 +27,44 @@ class nxmlParser():
         self.uid_refID = {}
 
         # dref_json is a json file stores all direct reference with uid
-        self.dref_json = {}
+        self.dref_json = []
 
         # caption_json is a json file stores all captions with corresponded uid
-        self.caption_json = {}
+        self.caption_json = []
 
+    def breakblankRemover(self, txtfile):
+        txtfile = unidecode.unidecode(txtfile)
+        nobreakline_txt = re.sub("[\n\r\t]", " ", txtfile)
+        reduce_blank_txt = re.sub(" +", " ", nobreakline_txt)
+        # print(reduce_blank_txt)
+        reduce_blank_txt = str.encode(reduce_blank_txt)
+        open(tmp_dir + "/nobreakblank.txt", 'wb').write(reduce_blank_txt)
+        afterRemover_txt = open(tmp_dir + "/nobreakblank.txt", 'r').read()
+        # writing and re-reading prevent small difference in brat 'rU' span error
+        return afterRemover_txt
 
+    
+    def segmentPureText(self, txtfile):
+        punkt_param = PunktParameters()
+        abbreviation = ["U.S.A","u.s.a", "Fig", "fig", "Table", "table", "Eq", "eq", "equation", "et al","e.g", "i.e","Fig"]
+        punkt_param.abbrev_types = set(abbreviation)
+        tokenizer = PunktSentenceTokenizer(punkt_param)
+        tokenized_output = tokenizer.tokenize(txtfile)
+        # print(tokenized_output)
 
-
+        return tokenized_output
+    
     def addMarkersToXref(self):
         count = 1
         for ref in soup.find_all("xref"):
             # only count and add marker to table or fig
+            try:
+                ref["ref-type"]
+            except KeyError:
+                ref["ref-type"] = "NoRef"
+                
             if ref["ref-type"] in ("table", "fig"):
+                # marker_key is #directreference-head#{uid.:05}#
                 marker_key = '#directreference-head#{:05}#'.format(count)
 
                 if ref.string is None:
@@ -61,54 +86,95 @@ class nxmlParser():
 
                 count +=1
 
-    def breakblankRemover(self, txtfile):
-        txtfile = unidecode.unidecode(txtfile)
-        nobreakline_txt = re.sub("[\n\r\t]", " ", txtfile)
-        reduce_blank_txt = re.sub(" +", " ", nobreakline_txt)
-        # print(reduce_blank_txt)
-        reduce_blank_txt = str.encode(reduce_blank_txt)
-        open(tmp_dir + "/nobreakblank.txt", 'wb').write(reduce_blank_txt)
-        afterRemover_txt = open(tmp_dir + "/nobreakblank.txt", 'r').read()
-        # writing and re-reading prevent small difference in brat 'rU' span error
-        return afterRemover_txt
-
-    
-    def segmentPureText(self, txtfile):
-        punkt_param = PunktParameters()
-        abbreviation = ["U.S.A","u.s.a", "Fig.", "fig.", "Table.", "table.", "Eq.", "eq.", "equation.","i.e.","e.g."]
-        punkt_param.abbrev_types = set(abbreviation)
-        tokenizer = PunktSentenceTokenizer(punkt_param)
-        tokenized_output = tokenizer.tokenize(txtfile)
-        # print(tokenized_output)
-
-        return tokenized_output
-
     def getDirectReferences(self, sents_list):
+        # get direct references and remove the direct references mark 
+        # in the text or sentences list
         for idx, sent in enumerate(sents_list): 
 
-            # Handle one sent has multi marker
-            sameSent_Marker = []
-            while(True):
-                if "#directreference-head#" in sent:
-                    marker = sent[sent.find("#directreference-head#"):sent.find("#directreference-head#")+28]
-                    sameSent_Marker.append(marker)
-                    sent = sent.replace(marker,'')
-                else:
-                    break
-            print(sameSent_Marker)
-            for marker in sameSent_Marker:
-                uid = self.markerkey_uid[marker]
-                refID =self.uid_refID[uid]
-                refID_attr = self.refID_attr[refID]
+            if "#directreference-head#" in sent:
+                drsent_dic = {}
 
-                self.dref_json[uid] = {}
-                self.dref_json[uid]["Type"] = refID_attr
-                self.dref_json[uid]["Text"] = sent
-                # self.dref_json[uid] still needs the span
+                # Handle one sent has multi marker
+                sameSent_Marker = []
+                while(True):
+                    if "#directreference-head#" in sent:
+                        marker = sent[sent.find("#directreference-head#"):sent.find("#directreference-head#")+28]
+                        sameSent_Marker.append(marker)
+                        sent = sent.replace(marker,'')
+                        sents_list[idx] = sent
+                    else:
+                        break
+                print(sameSent_Marker)
+                for marker in sameSent_Marker:
+                    uid = self.markerkey_uid[marker]
+                    refID =self.uid_refID[uid]
+                    refID_attr = self.refID_attr[refID]
+
+                    drsent_dic["uid"] = uid
+                    drsent_dic["Type"] = refID_attr
+                    drsent_dic["Text"] = sent
+                    drsent_dic["refID"] = refID
+                    # self.dref_json[uid] still needs the span
+                self.dref_json.append(drsent_dic)
+        # print(sents_list)
+        # print(json.dumps(self.dref_json,indent=4))
+        return sents_list
+
+        ## The sents_list now is without direct reference marker anymore.
+
+    # Complete this two functions later to add caption markers to 
+    def addMarkersToCaption(self):
+        pass
+    def getCaptions(self, sents_list):
+        pass
+
+    def getSpan_writeTxt(self, sents_list, finalTxt_path):
+        with open(finalTxt_path, 'w') as f:
+            for sent in sents_list:
+                f.write(sent +"\n")
         
+        finalTxt = open(finalTxt_path, 'r').read()
+
+        for item in self.dref_json:
+            item_sent = item["Text"]
+            item_sent_length = len(item_sent)
+            
+            span_st = finalTxt.find(item_sent)
+            span_ed = span_st + item_sent_length 
+
+            item["Span"] = [span_st, span_ed]
+
+            if span_st == -1:
+                with open(log_dir + filename + ".txt", 'w') as f:
+                    f.write(item_sent+"\n")
+
         print(json.dumps(self.dref_json,indent=4))
 
-            
+        ## Calculate the caption span with caption json
+        # Adding Code......
+
+    def writeANN(self, finalANN_path):
+        t_num = 1
+        a_num = 1
+        with open(finalANN_path, "w") as f:
+            for item in self.dref_json:
+                T_line = "T{}\tReference {} {}\t{}\n".format(t_num, item["Span"][0], item["Span"][1], item["Text"])
+                f.write(T_line)
+
+                A1_line = "A{}\tRefType T{} Direct\n".format(a_num, t_num)
+                a_num += 1
+                f.write(A1_line)
+
+                A2_line = "A{}\tType T{} {}\n".format(a_num,t_num,item["Type"])
+                a_num += 1
+                f.write(A2_line)
+
+                A3_line = "A{}\tNum T{} {}\n".format(a_num, t_num, item["uid"])
+                a_num += 1
+                f.write(A3_line)
+
+                t_num += 1
+
 
 
 
@@ -141,17 +207,21 @@ class nxmlParser():
 ''' 
 
 
-rootdir = './sample_data/'
+rootdir = './data/'
 img_ext = ('.jpg', '.gif', '.png', '.tif')
 log_file = open('log_file.txt', 'w+', encoding = "utf8")
 
-des_dir = "./PMC/"
+des_dir = "./PMC_test/"
 tmp_dir = "./tmp/"
+
+log_dir = "./log/"
 
 if not os.path.exists(des_dir):
     os.mkdir(des_dir)
 if not os.path.exists(tmp_dir):
     os.mkdir(tmp_dir)
+if not os.path.exists(log_dir):
+    os.mkdir(log_dir)
 
 unsuccess_list = []
 
@@ -199,34 +269,16 @@ for subdir in os.listdir(rootdir):
             ## Segment the text into sentences level
             sentences_list = curr_doc.segmentPureText(parsed_doc_text)
             
-            curr_doc.getDirectReferences(sentences_list)
-            # curr_doc.getCaptions()
-            
-            # Verify that all three lists have the same size
-            #            print (len(curr_doc.sent_ref_points), len(curr_doc.all_sent_parsed), len(curr_doc.all_sent_original) )
-            
-            '''
-            Creating the all_sentences.txt file. 
-            Segment the sentences and dump each sentence on one line of the file.
-            '''
-            # try: 
-            #     os.mkdir(subdir + "/annotation") 
-            # except(FileExistsError): 
-            #     pass
+            sentences_list = curr_doc.getDirectReferences(sentences_list)
 
-            #            print(currPath,'\n')
-            
-            curr_doc.createAllSentencesFile(currPath)
-            #            curr_doc.showCaptions()
-            curr_doc.compileDRefCaptions(currPath)
-            d = curr_doc.captions_DRef_dict
-            print (d, '\n\n')
-            
-            # curr_doc.createLogFileDicts()
-            # writeToLogFile(currPath, curr_doc.filename, curr_doc.log_file_references, curr_doc.log_file_caption)
+            ##
+            # Creating the final txt file. 
+            # Find the corresponded span
+            ##
 
-            curr_doc.createJSONFile(soup_original, currPath, subdir)
-            curr_doc.createANNfile(currPath)
+            curr_doc.getSpan_writeTxt(sentences_list, currPath + filename + ".txt")
+
+            curr_doc.writeANN(currPath + filename + ".ann")
 
 
         if curr_file.lower().endswith(('png', 'jpg', 'tif', 'gif', 'mov', 'mp4')):
