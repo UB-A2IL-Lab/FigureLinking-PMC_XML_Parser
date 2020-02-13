@@ -21,10 +21,11 @@ class nxmlParser():
         
         # markerKey_uid is used to find the sentences and link this sentences to unique id
         # which would be showed in brat (replace the num)
-        self.markerkey_uid = {}
+        self.markerkey_refID = {}
 
-        # uid_refID is used to make markerkey --> uid --> refID, a closed circle
-        self.uid_refID = {}
+        self.refID_list = []
+        # uid_refID is used to make markerkey --> refID --> uid, a closed circle
+        self.refID_uid = {}
 
         # dref_json is a json file stores all direct reference with uid
         self.dref_json = []
@@ -62,7 +63,7 @@ class nxmlParser():
                 ref["ref-type"]
             except KeyError:
                 ref["ref-type"] = "NoRef"
-                
+
             if ref["ref-type"] in ("table", "fig"):
                 # marker_key is #directreference-head#{uid.:05}#
                 marker_key = '#directreference-head#{:05}#'.format(count)
@@ -79,12 +80,18 @@ class nxmlParser():
                         self.refID_attr[refID] = "Table"
                     elif ref["ref-type"] == "fig":
                         self.refID_attr[refID] = "Figure"
-                uid = count
-                self.markerkey_uid[marker_key] = uid
-                self.uid_refID[uid] = refID
-                
+
+                self.markerkey_refID[marker_key] = refID
+                if refID not in self.refID_list:
+                    self.refID_list.append(refID)
 
                 count +=1
+        
+        # Creat the uid which is 1-1 matched with refID
+        uid = 1
+        for refID in self.refID_list:
+            self.refID_uid[refID] = uid
+            uid += 1 
 
     def getDirectReferences(self, sents_list):
         # get direct references and remove the direct references mark 
@@ -92,8 +99,6 @@ class nxmlParser():
         for idx, sent in enumerate(sents_list): 
 
             if "#directreference-head#" in sent:
-                drsent_dic = {}
-
                 # Handle one sent has multi marker
                 sameSent_Marker = []
                 while(True):
@@ -106,16 +111,16 @@ class nxmlParser():
                         break
                 print(sameSent_Marker)
                 for marker in sameSent_Marker:
-                    uid = self.markerkey_uid[marker]
-                    refID =self.uid_refID[uid]
+                    drsent_dic = {}
+                    refID = self.markerkey_refID[marker]
                     refID_attr = self.refID_attr[refID]
 
-                    drsent_dic["uid"] = uid
+                    drsent_dic["uid"] = self.refID_uid[refID]
                     drsent_dic["Type"] = refID_attr
                     drsent_dic["Text"] = sent
                     drsent_dic["refID"] = refID
                     # self.dref_json[uid] still needs the span
-                self.dref_json.append(drsent_dic)
+                    self.dref_json.append(drsent_dic)
         # print(sents_list)
         # print(json.dumps(self.dref_json,indent=4))
         return sents_list
@@ -125,6 +130,10 @@ class nxmlParser():
     # Complete this two functions later to add caption markers to 
     def addMarkersToCaption(self):
         pass
+
+
+
+
     def getCaptions(self, sents_list):
         pass
 
@@ -169,7 +178,7 @@ class nxmlParser():
                 a_num += 1
                 f.write(A2_line)
 
-                A3_line = "A{}\tNum T{} {}\n".format(a_num, t_num, item["uid"])
+                A3_line = "A{}\tUID T{} {}\n".format(a_num, t_num, item["uid"])
                 a_num += 1
                 f.write(A3_line)
 
@@ -209,9 +218,8 @@ class nxmlParser():
 
 rootdir = './data/'
 img_ext = ('.jpg', '.gif', '.png', '.tif')
-log_file = open('log_file.txt', 'w+', encoding = "utf8")
 
-des_dir = "./PMC_test/"
+des_dir = "./PMC/"
 tmp_dir = "./tmp/"
 
 log_dir = "./log/"
@@ -226,6 +234,7 @@ if not os.path.exists(log_dir):
 unsuccess_list = []
 
 for subdir in os.listdir(rootdir):
+    # subdir = "PMC116597"
     subdir_path = os.path.join(rootdir, subdir)
     for curr_file in os.listdir(subdir_path):
         curr_file_path = os.path.join(subdir_path, curr_file)
@@ -250,8 +259,6 @@ for subdir in os.listdir(rootdir):
 #print('Processing file: ', subdir + '/' + curr_file, '\n')
 #infile = open(subdir + '/' + curr_file, "r")
             soup = BeautifulSoup(infile, 'xml')
-            soup_original = soup
-            soup_copy = soup
             filename = os.path.splitext(curr_file)[0]
             
             curr_doc = nxmlParser()
@@ -260,7 +267,7 @@ for subdir in os.listdir(rootdir):
             curr_doc.addMarkersToXref()
             
             ## Get pure text
-            soup_copy = soup_original
+
             parsed_doc_text = soup.get_text()
 
             ## Remove all the \n \r and multi blank and form it into a nearly perfect whole paragraph
@@ -288,3 +295,5 @@ for subdir in os.listdir(rootdir):
 
         print('\nFinished processing file: ', curr_file_path, '\n')
         print('----------------------------------------\n\n')
+
+    # break
