@@ -77,7 +77,7 @@ class nxmlParser():
 
     def refID_uid_process(self):
         for ref in soup.find_all("xref"):
-            
+
             try:
                 ref["ref-type"]
             except KeyError:
@@ -227,7 +227,7 @@ class nxmlParser():
                 if '#caption-start-head#' in sent:
                     st_marker = sent[sent.find("#caption-start-head#"):sent.find("#caption-start-head#")+26]
                     sent = sent.replace(st_marker, '')
-                elif '#caption-ended-head#' in sent:
+                if '#caption-ended-head#' in sent:
                     ed_marker = sent[sent.find("#caption-ended-head#"):sent.find("#caption-ended-head#")+27]
                     sent = sent.replace(ed_marker, '')
 
@@ -259,18 +259,28 @@ class nxmlParser():
             # Sometimes caption-start-head just adhersed to the previous sentences (actually title string) and can't be separate.
             # Which is the reason we need to process the title first.
             if '#caption-start-head#' in st_sent:
-                st_marker = st_sent[st_sent.find("#caption-start-head#"):st_sent.find("#caption-start-head#")+26]
+                st_index = st_sent.find("#caption-start-head#")
+                st_marker = st_sent[st_index:st_index+26]
                 st_sent = st_sent.replace(st_marker, '')
-                sents_list[idx] = st_sent
-                for idi in range(idx, total_sent):
-                    # The first sent looping here are the same sent of st_sent
-                    if '#caption-ended-head#' not in sents_list[idi]:
-                        cap_sents.append(sents_list[idi])
-                    else:
-                        ed_marker = sents_list[idi][sents_list[idi].find("#caption-ended-head#"):sents_list[idi].find("#caption-ended-head#")+27]
-                        sents_list[idi] = sents_list[idi].replace(ed_marker, '')
-                        cap_sents.append(sents_list[idi])
-                        break
+                if '#caption-ended-head#' in st_sent:
+                    ed_index = st_sent.find('#caption-ended-head#')
+                    ed_marker = st_sent[ed_index:ed_index+27]
+                    st_sent = st_sent.replace(ed_marker, '')
+                    sents_list[idx] = st_sent
+                    cap_sents.append(st_sent[st_index:ed_index])
+                else:
+                    cap_sents.append(st_sent[st_index:len(st_sent)])
+                    sents_list[idx] = st_sent
+
+                    for idi in range(idx+1, total_sent):
+                        if '#caption-ended-head#' not in sents_list[idi]:
+                            cap_sents.append(sents_list[idi])
+                        else:
+                            ed_index = sents_list[idi].find("#caption-ended-head#")
+                            ed_marker = sents_list[idi][ed_index:ed_index+27]
+                            sents_list[idi] = sents_list[idi].replace(ed_marker, '')
+                            cap_sents.append(sents_list[idi][0:ed_index])
+                            break
 
                 cap_refID = self.capMarkerkey_refID[st_marker]
                 cap_dic["uid"] = self.refID_uid[cap_refID]
