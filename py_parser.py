@@ -147,7 +147,7 @@ class nxmlParser():
                 self.refID_imgXML[cap_refID] = fig_cap.graphic["xlink:href"]
             except TypeError:
                 self.refID_imgXML[cap_refID] = ""
-            st_marker_key = '#caption-start-head#{:05}#'.format(count)
+            st_marker_key = '#caption-start-head#{:05}# '.format(count)
             ed_marker_key = '#caption-ended-head#{:05}#.'.format(count)
             
             try:
@@ -179,7 +179,11 @@ class nxmlParser():
         for table_cap in soup.find_all('table-wrap'):
             cap_refID = table_cap["id"]
             self.refID_imgXML[cap_refID] = str(table_cap)
-            st_marker_key = '#caption-start-head#{:05}#'.format(count)
+            # Add a blank after st_markerkey in order to prevent the tokenizer fail on abbreviation
+            # Like #caption-start-head#00001Fig. 2#, then it wouldn't recognize the Fig. as the setted abbreviation
+            # Then after removing the caption marker, the line would only remain Fig. , which cause the trouble for find function later, 
+            # for so many matched Fig. in the pure text.
+            st_marker_key = '#caption-start-head#{:05}# '.format(count)
             ed_marker_key = '#caption-ended-head#{:05}#.'.format(count) 
 
             try:
@@ -201,6 +205,7 @@ class nxmlParser():
             table_cap.caption.string = table_cap.caption.text + ed_marker_key + "\n"
 
             self.capMarkerkey_refID[st_marker_key] = cap_refID
+        # open(curr_subdir+"/addmarker.nxml",'w').write(soup.prettify())
 
     def getDirectReferences(self, sents_list):
         # get direct references and remove the direct references mark 
@@ -225,7 +230,7 @@ class nxmlParser():
                 # the caption marker would still remain in the sents_list, while the sent record here
                 # has no marker
                 if '#caption-start-head#' in sent:
-                    st_marker = sent[sent.find("#caption-start-head#"):sent.find("#caption-start-head#")+26]
+                    st_marker = sent[sent.find("#caption-start-head#"):sent.find("#caption-start-head#")+27]
                     sent = sent.replace(st_marker, '')
                 if '#caption-ended-head#' in sent:
                     ed_marker = sent[sent.find("#caption-ended-head#"):sent.find("#caption-ended-head#")+27]
@@ -260,7 +265,7 @@ class nxmlParser():
             # Which is the reason we need to process the title first.
             if '#caption-start-head#' in st_sent:
                 st_index = st_sent.find("#caption-start-head#")
-                st_marker = st_sent[st_index:st_index+26]
+                st_marker = st_sent[st_index:st_index+27]
                 st_sent = st_sent.replace(st_marker, '')
                 if '#caption-ended-head#' in st_sent:
                     ed_index = st_sent.find('#caption-ended-head#')
@@ -409,7 +414,7 @@ unsuccess_list = []
 for subdir in os.listdir(rootdir):
     # subdir = "PMC116597"
     # subdir = 'PMC140010'
-    # subdir = 'PMC153788'
+    # subdir = 'PMC5747209'
     print('\nBegined processing file: ', subdir, '\n')
     subdir_path = os.path.join(rootdir, subdir)
     for curr_file in os.listdir(subdir_path):
