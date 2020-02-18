@@ -326,16 +326,35 @@ class nxmlParser():
             item_sents = item["Text"]
             # print(item_sents)
             item["Span"] = []
+            # for sent in item_sents:
+            #     sent_length = len(sent)
+
+            #     span_st = finalTxt.find(sent)
+            #     span_ed = span_st + sent_length
+
+            #     item["Span"].append([span_st, span_ed])
+
+            whole_sent = ''
             for sent in item_sents:
-                sent_length = len(sent)
+                whole_sent += sent +"\n"
 
-                span_st = finalTxt.find(sent)
-                span_ed = span_st + sent_length
+            whole_span_st = finalTxt.find(whole_sent[:-1])
 
+            if whole_sent[-2:] == "\n\n":
+                whole_sent = whole_sent[:-1]
+
+            span_st = whole_span_st
+            for br in re.finditer("\n", whole_sent):
+                br_index = br.start()
+                span_ed = whole_span_st + br_index 
                 item["Span"].append([span_st, span_ed])
+                span_st = span_ed + 1
 
-                if span_st == -1:
-                    open(log_dir + subdir + ".txt", 'w').write(sent+"\n")
+            # print(whole_sent)
+            # print(item["Span"])
+
+            if span_st == -1:
+                open(log_dir + subdir + ".txt", 'w').write(sent+"\n")
 
     def writeANN(self, finalANN_path):
         t_num = 1
@@ -414,7 +433,7 @@ unsuccess_list = []
 for subdir in os.listdir(rootdir):
     # subdir = "PMC116597"
     # subdir = 'PMC140010'
-    # subdir = 'PMC5747209'
+    # subdir = 'PMC5584515'
     print('\nBegined processing file: ', subdir, '\n')
     subdir_path = os.path.join(rootdir, subdir)
     for curr_file in os.listdir(subdir_path):

@@ -1,1 +1,0 @@
-Figure 5: (a) Binary mask M(x, y) of Figure 2 after horizontal clusters extraction (b) M(x, y) after morphological thresholding and ROI establishment; and (c) vehicle hypotheses including those out of the ROI.#caption-ended-head#00005#.
