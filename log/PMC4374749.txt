@@ -1,0 +1,1 @@
+Please see the complete, corrected Fig. 1 here.10.1371/journal.pone.0123143.g001 Fig 1: Design of the video task.. The actual task displays 16 video messages (8 high MSV and 8 low MSV) in pseudorandom order (the order presented above is one possible organization).#caption-ended-head#00001#.

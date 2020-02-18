@@ -1,0 +1,1 @@
+It turns out that many of these parameters can be changed over at least one order of magnitude without affecting pattern formation (Table 2).10.7554/eLife.05502.022 Table 2.Range of model parameter values where a single stripe is formedDOI: http://dx.doi.org/10.7554/eLife.05502.022#caption-ended-head#00019#.

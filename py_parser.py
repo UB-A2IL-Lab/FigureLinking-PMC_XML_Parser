@@ -77,6 +77,12 @@ class nxmlParser():
 
     def refID_uid_process(self):
         for ref in soup.find_all("xref"):
+            
+            try:
+                ref["ref-type"]
+            except KeyError:
+                ref["ref-type"] = "NoRef"
+
             if ref["ref-type"] in ("table", "fig"):
                 refID = ref["rid"]
                 if refID not in self.refID_list:
@@ -129,6 +135,73 @@ class nxmlParser():
 
                 count +=1 
 
+    # Complete this two functions later to add caption markers to 
+    # self.capMarkerkey_refID --->  self.refID_attr
+    # self.capMarkerkey_refID ---> self.refID_uid
+    def addMarkersToCaption(self):
+        count = 1
+        for fig_cap in soup.find_all('fig'):
+            # print(fig_cap)
+            cap_refID = fig_cap["id"]
+            try:
+                self.refID_imgXML[cap_refID] = fig_cap.graphic["xlink:href"]
+            except TypeError:
+                self.refID_imgXML[cap_refID] = ""
+            st_marker_key = '#caption-start-head#{:05}#'.format(count)
+            ed_marker_key = '#caption-ended-head#{:05}#.'.format(count)
+            
+            try:
+                fig_cap.label.text
+            except AttributeError:
+                new_tag = soup.new_tag("label")
+                fig_cap.append(new_tag)
+                new_tag.string = " "
+            try:
+                fig_cap.caption.text
+            except:
+                continue
+
+            if fig_cap.label.text[-1] in (":", "."):
+                fig_cap.label.string = "\n" + st_marker_key + fig_cap.label.text
+            else:
+                fig_cap.label.string = "\n" + st_marker_key + fig_cap.label.text + ": "
+            
+            # print(fig_cap)
+            # print(fig_cap.caption.p.text)
+            # print(fig_cap.caption.text)
+            fig_cap.caption.string = fig_cap.caption.text + ed_marker_key + "\n"
+            
+            self.capMarkerkey_refID[st_marker_key] = cap_refID
+            
+            count += 1
+        # self.refID_attr could be reused here in future to tell what attribute of each cap is.
+        # refID is always the core key
+        for table_cap in soup.find_all('table-wrap'):
+            cap_refID = table_cap["id"]
+            self.refID_imgXML[cap_refID] = str(table_cap)
+            st_marker_key = '#caption-start-head#{:05}#'.format(count)
+            ed_marker_key = '#caption-ended-head#{:05}#.'.format(count) 
+
+            try:
+                table_cap.label.text
+            except AttributeError:
+                new_tag = soup.new_tag("label")
+                table_cap.append(new_tag)
+                new_tag.string = " "
+            try:
+                table_cap.caption.text
+            except:
+                continue
+
+            if table_cap.label.text[-1] in (":", "."):
+                table_cap.label.string = "\n" + st_marker_key + table_cap.label.text
+            else:
+                table_cap.label.string = "\n" + st_marker_key + table_cap.label.text + ": "
+            
+            table_cap.caption.string = table_cap.caption.text + ed_marker_key + "\n"
+
+            self.capMarkerkey_refID[st_marker_key] = cap_refID
+
     def getDirectReferences(self, sents_list):
         # get direct references and remove the direct references mark 
         # in the text or sentences list
@@ -146,6 +219,19 @@ class nxmlParser():
                     else:
                         break
                 # print(sameSent_Marker)
+
+                # sent would happenly have the caption marker, then here is to remove the 
+                # caption marker but without really move it in the sents_list, which means
+                # the caption marker would still remain in the sents_list, while the sent record here
+                # has no marker
+                if '#caption-start-head#' in sent:
+                    st_marker = sent[sent.find("#caption-start-head#"):sent.find("#caption-start-head#")+26]
+                    sent = sent.replace(st_marker, '')
+                elif '#caption-ended-head#' in sent:
+                    ed_marker = sent[sent.find("#caption-ended-head#"):sent.find("#caption-ended-head#")+27]
+                    sent = sent.replace(ed_marker, '')
+
+
                 for marker in sameSent_Marker:
                     drsent_dic = {}
                     refID = self.refMarkerkey_refID[marker]
@@ -162,47 +248,6 @@ class nxmlParser():
         return sents_list
 
         ## The sents_list now is without direct reference marker anymore.
-
-    # Complete this two functions later to add caption markers to 
-    # self.capMarkerkey_refID --->  self.refID_attr
-    # self.capMarkerkey_refID ---> self.refID_uid
-    def addMarkersToCaption(self):
-        count = 1
-        for fig_cap in soup.find_all('fig'):
-            # print(fig_cap.label)
-            cap_refID = fig_cap["id"]
-            self.refID_imgXML[cap_refID] = fig_cap.graphic["xlink:href"]
-            st_marker_key = '#caption-start-head#{:05}#'.format(count)
-            ed_marker_key = '#caption-ended-head#{:05}#. '.format(count)
-            
-            if fig_cap.label.text[-1] in (":", "."):
-                fig_cap.label.string = st_marker_key + fig_cap.label.text
-            else:
-                fig_cap.label.string = st_marker_key + fig_cap.label.text + ":"
-            
-            # print(fig_cap)
-            # print(fig_cap.caption.p.text)
-            fig_cap.caption.p.string = fig_cap.caption.p.text + ed_marker_key
-            
-            self.capMarkerkey_refID[st_marker_key] = cap_refID
-            
-            count += 1
-        # self.refID_attr could be reused here in future to tell what attribute of each cap is.
-        # refID is always the core key
-        for table_cap in soup.find_all('table-wrap'):
-            cap_refID = table_cap["id"]
-            self.refID_imgXML[cap_refID] = table_cap
-            st_marker_key = '#caption-start-head#{:05}#'.format(count)
-            ed_marker_key = '#caption-ended-head#{:05}#. '.format(count) 
-
-            if table_cap.label.text[-1] in (":", "."):
-                table_cap.label.string = st_marker_key + table_cap.label.text
-            else:
-                table_cap.label.string = st_marker_key + table_cap.label.text + ":"
-            
-            table_cap.caption.p.string = table_cap.caption.p.text + ed_marker_key
-
-            self.capMarkerkey_refID[st_marker_key] = cap_refID
 
     def getCaptions(self, sents_list):
         # get caption and remove the caption mark 
@@ -222,7 +267,7 @@ class nxmlParser():
                     if '#caption-ended-head#' not in sents_list[idi]:
                         cap_sents.append(sents_list[idi])
                     else:
-                        ed_marker = sents_list[idi][sents_list[idi].find("#caption-ended-head#"):sents_list[idi].find("#caption-ended-head#")+28]
+                        ed_marker = sents_list[idi][sents_list[idi].find("#caption-ended-head#"):sents_list[idi].find("#caption-ended-head#")+27]
                         sents_list[idi] = sents_list[idi].replace(ed_marker, '')
                         cap_sents.append(sents_list[idi])
                         break
@@ -259,11 +304,23 @@ class nxmlParser():
             item["Span"] = [span_st, span_ed]
 
             if span_st == -1:
-                with open(log_dir + filename + ".txt", 'w') as f:
-                    f.write(item_sent+"\n")
+                open(log_dir + subdir + ".txt", 'w').write(item_sent+"\n")
 
         # Calculate the caption span with caption json
+        for item in self.caption_json:
+            item_sents = item["Text"]
+            # print(item_sents)
+            item["Span"] = []
+            for sent in item_sents:
+                sent_length = len(sent)
 
+                span_st = finalTxt.find(sent)
+                span_ed = span_st + sent_length
+
+                item["Span"].append([span_st, span_ed])
+
+                if span_st == -1:
+                    open(log_dir + subdir + ".txt", 'w').write(sent+"\n")
 
     def writeANN(self, finalANN_path):
         t_num = 1
@@ -287,26 +344,29 @@ class nxmlParser():
 
                 t_num += 1
 
+            for item in self.caption_json:
+                span_string = ""
+                for span in item["Span"]:
+                    span_string += ";{} {}".format(span[0], span[1])
+                span_string = span_string[1:]
+
+                T_line = "T{}\tCaption {}\t{}\n".format(t_num, span_string, " ".join(item["Text"]))
+                f.write(T_line)
+
+                A1_line = "A{}\tType T{} {}\n".format(a_num, t_num, item["Type"])
+                a_num += 1
+                f.write(A1_line)
+
+                A2_line = "A{}\tUID T{} {}\n".format(a_num, t_num, item["uid"])
+                a_num += 1
+                f.write(A2_line)
+
+                t_num += 1
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    def writeJSON(self, finalJSON_path):
+        # print(self.file_json)
+        open(finalJSON_path, 'w').write(json.dumps(self.file_json, indent = 4))
 
 
 
@@ -319,7 +379,7 @@ class nxmlParser():
 ''' 
 
 
-rootdir = './sample_data/'
+rootdir = './data/'
 img_ext = ('.jpg', '.gif', '.png', '.tif')
 
 des_dir = "./PMC/"
@@ -339,7 +399,7 @@ unsuccess_list = []
 for subdir in os.listdir(rootdir):
     # subdir = "PMC116597"
     # subdir = 'PMC140010'
-    # subdir = 'PMC151193'
+    # subdir = 'PMC153788'
     print('\nBegined processing file: ', subdir, '\n')
     subdir_path = os.path.join(rootdir, subdir)
     for curr_file in os.listdir(subdir_path):
@@ -396,6 +456,8 @@ for subdir in os.listdir(rootdir):
             curr_doc.getSpan_writeTxt(sentences_list, currPath + filename + ".txt")
 
             curr_doc.writeANN(currPath + filename + ".ann")
+
+            curr_doc.writeJSON(currPath + filename + ".json")
 
 
         if curr_file.lower().endswith(('png', 'jpg', 'tif', 'gif', 'mov', 'mp4')):

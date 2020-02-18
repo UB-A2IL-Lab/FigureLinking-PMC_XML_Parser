@@ -1,0 +1,1 @@
+The Table 1 contains numbers of k-CT components which are maximal for selected k. The Fig 10 shows the sample of k-CT components on the graph of fulleroid C260 - I[5, 7].10.1371/journal.pone.0202181.g009 Fig 9: The largest 4-CT component (blue vertices) in the biconnected subgraph (in the blue ellipse) of Zachary's karate club graph.. #caption-ended-head#00009#.
