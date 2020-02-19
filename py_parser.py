@@ -205,6 +205,8 @@ class nxmlParser():
             table_cap.caption.string = table_cap.caption.text + ed_marker_key + "\n"
 
             self.capMarkerkey_refID[st_marker_key] = cap_refID
+
+            count += 1
         # open(curr_subdir+"/addmarker.nxml",'w').write(soup.prettify())
 
     def getDirectReferences(self, sents_list):
@@ -413,7 +415,7 @@ class nxmlParser():
 ''' 
 
 
-rootdir = './data/'
+rootdir = './sample_data/'
 img_ext = ('.jpg', '.gif', '.png', '.tif')
 
 des_dir = "./PMC/"
