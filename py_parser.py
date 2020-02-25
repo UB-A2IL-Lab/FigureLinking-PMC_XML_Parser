@@ -430,10 +430,9 @@ if not os.path.exists(tmp_dir):
 if not os.path.exists(log_dir):
     os.mkdir(log_dir)
 
-unsuccess_list = []
 
 for subdir in os.listdir(rootdir):
-    # subdir = "PMC116597"
+    subdir = "PMC116597"
     # subdir = 'PMC140010'
     # subdir = 'PMC5584515'
     print('\nBegined processing file: ', subdir, '\n')
@@ -479,9 +478,11 @@ for subdir in os.listdir(rootdir):
 
             # Remove all the \n \r and multi blank and form it into a nearly perfect whole paragraph
             parsed_doc_text = curr_doc.breakblankRemover(parsed_doc_text)
+            # open("./withmarker.json",'w').write(json.dumps(parsed_doc_text,indent=4))
 
             # Segment the text into sentences level
             sentences_list = curr_doc.segmentPureText(parsed_doc_text)
+            # open("./nomarker.json",'w').write(json.dumps(parsed_doc_text,indent=4))
             
             # Get direct reference and captions
             sentences_list = curr_doc.getDirectReferences(sentences_list)

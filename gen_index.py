@@ -1,7 +1,8 @@
 import os 
 import json 
 
-root_dir = "PMC/"
+root_dir = "./PMC/"
+server_root_dir = "./brat/data/PMC/"
 web_url = "http://sahana.cedar.buffalo.edu/"
 
 with open("./index_pmc.html", 'w') as h_f:
@@ -12,16 +13,13 @@ with open("./index_pmc.html", 'w') as h_f:
     )
 
     for sub_dir in os.listdir(root_dir):
-        sub_dir_path = os.path.join(root_dir, sub_dir, "annotation")
+        sub_dir_path = os.path.join(root_dir, sub_dir)
         
-        for file in os.listdir(sub_dir_path):
-            if file.endswith('ann'):
-                annfile_name = os.path.splitext(file)[0]
 
         h_f.write(
             '''
-    <a style="font-size:18pt" href = "{}brat/index.xhtml#/{}">[{}]</a>
-            '''.format(web_url, sub_dir_path + "/" + annfile_name, sub_dir)
+    <a style="font-size:18pt" href = "{}">[{}]</a>
+            '''.format(server_root_dir+ sub_dir + "/" + sub_dir + ".html", sub_dir)
         )
 
     
