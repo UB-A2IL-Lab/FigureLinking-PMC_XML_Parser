@@ -55,9 +55,11 @@ Type:{}
             html_f.write(
                 '''
 <p>
-UID:{}
+<b>UID:{}</b>
+<br>
 <br>
 Type:{}
+<br>
 <br>
 {}
 <br>

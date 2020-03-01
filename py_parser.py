@@ -48,13 +48,16 @@ class nxmlParser():
         self.file_json["imgXML_json"] = self.refID_imgXML
 
     def breakblankRemover(self, txtfile):
-        txtfile = unidecode.unidecode(txtfile)
+        # txtfile = unidecode.unidecode(txtfile)
         nobreakline_txt = re.sub("[\n\r\t]", " ", txtfile)
         reduce_blank_txt = re.sub(" +", " ", nobreakline_txt)
         # print(reduce_blank_txt)
-        reduce_blank_txt = str.encode(reduce_blank_txt)
-        open(tmp_dir + "/nobreakblank.txt", 'wb').write(reduce_blank_txt)
-        afterRemover_txt = open(tmp_dir + "/nobreakblank.txt", 'r').read()
+
+        # reduce_blank_txt = str.encode(reduce_blank_txt)
+        # open(tmp_dir + "/nobreakblank.txt", 'wb').write(reduce_blank_txt)
+        # afterRemover_txt = open(tmp_dir + "/nobreakblank.txt", 'r').read()
+
+        afterRemover_txt = reduce_blank_txt
         # writing and re-reading prevent small difference in brat 'rU' span error
         return afterRemover_txt
 
@@ -415,7 +418,7 @@ class nxmlParser():
 ''' 
 
 
-rootdir = './sample_data/'
+rootdir = './new_data/'
 img_ext = ('.jpg', '.gif', '.png', '.tif')
 
 des_dir = "./PMC/"
@@ -432,9 +435,9 @@ if not os.path.exists(log_dir):
 
 
 for subdir in os.listdir(rootdir):
-    subdir = "PMC116597"
+    # subdir = "PMC116597"
     # subdir = 'PMC140010'
-    # subdir = 'PMC5584515'
+    # subdir = 'PMC5013157'
     print('\nBegined processing file: ', subdir, '\n')
     subdir_path = os.path.join(rootdir, subdir)
     for curr_file in os.listdir(subdir_path):
